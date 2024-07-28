@@ -1,0 +1,14 @@
+<div id="b{{ batch }}" class="grid" hx-get="/load-more?batch={{ batch + 1 }}" hx-trigger="revealed" hx-swap="afterend">
+    {% for i in range(1024) %}
+    <div class="box">💰{{ batch }} / {{ i }}</div>
+    {% endfor %}
+</div>
+
+{% if batch > 3 %}
+    <div id="b{{ batch - 4 }}" hx-swap-oob="delete" ></div>
+    <div id="b{{ batch - 3 }}" hx-swap-oob="beforebegin">
+<!--        <div id="b{{ batch - 4}}" class="grid" hx-get="/load-more?batch={{ batch - 4 }}&prev=True" hx-trigger="revealed" hx-swap="outerHTML">-->
+<!--        </div>-->
+    </div>
+    <div id="b{{ batch - 5 }}" hx-swap-oob="delete" ></div>
+{% endif %}

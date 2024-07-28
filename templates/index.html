@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Scroll Grid</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(16, 50px);
+            gap: 5px;
+            margin: 20px;
+        }
+        .box {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+            cursor: pointer;
+        }
+    </style>
+    <script src="https://unpkg.com/htmx.org@2.0.1"></script>
+</head>
+<body>
+    <div id="grid-container">
+        <div id="-1" class="grid" hx-get="/load-more?batch=0" hx-trigger="load" hx-swap="outerHTML">
+        </div>
+    </div>
+</body>
+</html>
