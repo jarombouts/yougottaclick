@@ -1,37 +1,64 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:hx-on="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Infinite Scroll Grid</title>
     <style>
+        @media (min-width: 1001px) {
+            .grid {
+                grid-template-columns: repeat(16, 50px);
+            }
+        }
+
+        @media (max-width: 1000px) and (min-width: 501px) {
+            .grid {
+                grid-template-columns: repeat(8, 50px);
+            }
+        }
+
+        @media (max-width: 500px) {
+            .grid {
+                grid-template-columns: repeat(4, 50px);
+            }
+        }
+
         body {
             display: flex;
             flex-direction: column;
             align-items: center;
             font-family: Arial, sans-serif;
         }
+
         .grid {
             display: grid;
-            grid-template-columns: repeat(16, 50px);
             gap: 5px;
-            margin: 20px;
+            margin: 5px;
         }
+
         .box {
             width: 50px;
             height: 50px;
             display: flex;
             justify-content: center;
             align-items: center;
+            text-align: center;
             background-color: #f0f0f0;
             cursor: pointer;
+        }
+
+        .message {
+            font-size: 24px;
+            color: #337599;
+            font-weight: bold;
+            margin: 10px;
         }
     </style>
     <script src="https://unpkg.com/htmx.org@2.0.1"></script>
 </head>
 <body>
     <div id="grid-container">
-        <div id="-1" class="grid" hx-get="/load-more?batch=0" hx-trigger="load" hx-swap="outerHTML">
+        <div id="-1" class="grid" hx-get="/scroll?batch=10" hx-trigger="load" hx-swap="outerHTML">
         </div>
     </div>
 </body>
