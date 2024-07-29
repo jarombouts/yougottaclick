@@ -57,9 +57,48 @@
     <script src="https://unpkg.com/htmx.org@2.0.1"></script>
 </head>
 <body>
-    <div id="grid-container">
-        <div id="-1" class="grid" hx-get="/scroll?batch=10" hx-trigger="load" hx-swap="outerHTML">
-        </div>
-    </div>
+<div id="grid-container">
+    <div id="spacer"></div>
+    <div id="-1"
+         class="grid"
+         hx-get="/scroll?batch=1&up=True"
+         hx-trigger="load"
+         hx-swap="outerHTML"
+         hx-on:htmx:before-request="captureScrollPosition(event)"></div>
+    <div id="0"
+         class="grid"
+         hx-get="/scroll?batch=2"
+         hx-trigger="load"
+         hx-swap="outerHTML"></div>
+
+</div>
 </body>
+
+<script>
+    let lastElement;
+
+    function captureScrollPosition(evt) {
+        // console.log("!   hx-on:htmx:before-request='captureScrollPosition()' fired");
+        if (evt.detail.elt.getAttribute('hx-swap') === 'beforebegin') {
+            // console.log("    captureScrollPosition: hx-swap is beforebegin; setting lastElement");
+            lastElement = evt.target;
+            // console.log("---> lastElement value:", lastElement);
+        }
+    }
+
+    document.body.addEventListener('htmx:afterSwap', function (evt) {
+        // console.log("*   eventlistener on afterSwap triggers");
+        // console.log("    evt.detail.target.getAttribute('hx-swap') value: ");
+        // console.log(evt.detail.target.getAttribute('hx-swap'));
+
+        if (evt.detail.target.getAttribute('hx-swap') === 'beforebegin') {
+            console.log("    eventlistener on afterSwap: hx-swap is beforebegin && lastElement; scrolling to lastElement");
+            console.log("---> lastElement value: ", lastElement);
+            // lastElement.scrollIntoView({ behavior: "smooth", block: "end"});
+            // console.log("     finished scrolling lastElement into view.");
+            console.log("*** turned off, debug *** ");
+        }
+    });
+</script>
+
 </html>

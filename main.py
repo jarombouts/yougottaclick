@@ -13,10 +13,14 @@ def index():
 
 
 @app.route('/scroll', methods=['GET'])
-def load_more():
-    batch = request.args.get('batch', default=0, type=int)
-    print(f"rendering load-more?batch={batch}")
-    return render_template('scroll-next.html', batch=batch)
+def scroll():
+    batch = request.args.get('batch', default=0, type=int) % 1024
+    up = request.args.get('up', default=False, type=bool)
+    if up:
+        return render_template('scroll-up.html', batch=batch)
+    else:
+        return render_template('scroll.html', batch=batch)
+
 
 
 if __name__ == '__main__':
