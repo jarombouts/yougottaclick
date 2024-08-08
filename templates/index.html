@@ -58,19 +58,13 @@
 </head>
 <body>
 <div id="grid-container">
-    <div id="spacer"></div>
-    <div id="-1"
-         class="grid"
-         hx-get="/scroll?batch=1&up=True"
-         hx-trigger="load"
-         hx-swap="outerHTML"
-         hx-on:htmx:before-request="captureScrollPosition(event)"></div>
+    <div id="topspacer"></div>
     <div id="0"
          class="grid"
-         hx-get="/scroll?batch=2"
-         hx-trigger="load"
+         hx-get="/scroll?batch=0"
+         hx-trigger="load delay:50ms"
          hx-swap="outerHTML"></div>
-
+    <div id="bottomspacer"></div>
 </div>
 </body>
 

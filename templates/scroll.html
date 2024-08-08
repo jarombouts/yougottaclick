@@ -1,7 +1,12 @@
-<div id="b{{ batch }}" class="grid" hx-get="/scroll?batch={{ batch + 1 }}" hx-trigger="revealed delay:1500ms" hx-swap="afterend">
+<div id="b{{ batch }}"
+     class="grid" hx-get="/scroll?batch={{ batch + 1 }}"
+     hx-trigger="revealed delay:500ms"
+     hx-swap="afterend show:#b{{ batch - 1}}:bottom">
     {% for i in range(1024) %}
     <div id="{{ batch }}-{{ i }}" class="box">💰{{ batch }}-{{ i }}</div>
     {% endfor %}
 </div>
 
-
+{% if batch > 3 %}
+<div id="b{{ batch - 4 }}" hx-swap-oob="delete"></div>
+{% endif %}

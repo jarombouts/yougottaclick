@@ -1,13 +1,5 @@
-<div id="b{{ batch }}"
-     class="grid"
-     {% if batch > 0 %}
-     hx-get="/scroll?batch={{ batch - 1 }}&up=True"
-     hx-trigger="revealed delay:1500ms"
-     hx-swap="beforebegin scroll:bottom"
-     hx-on:htmx:before-request="captureScrollPosition(event)"
-    {% endif %}>
+<div id="b{{ batch }}" class="grid">
     {% for i in range(1024) %}
     <div id="{{ batch }}-{{ i }}" class="box">💰{{ batch }}-{{ i }}</div>
     {% endfor %}
 </div>
-
