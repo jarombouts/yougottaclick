@@ -31,9 +31,8 @@ func runClient(ctx context.Context, id int, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	u := url.URL{Scheme: "ws", Host: *addr, Path: "/ws"}
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-	if err != nil {
-		log.Printf("Client %d dial error: %v", id, err)
+	c, done2 := connectWS(u, id)
+	if done2 {
 		return
 	}
 	defer c.Close()
@@ -48,9 +47,9 @@ func runClient(ctx context.Context, id int, wg *sync.WaitGroup) {
 				return
 			}
 			if len(message) < 100 {
-				//log.Printf("Client %d received: %s", id, message)
+				log.Printf("Client %d received: %s", id, message)
 			} else {
-				//log.Printf("Client %d received big message of length %d", id, len(message))
+				log.Printf("Client %d received big message of length %d", id, len(message))
 			}
 			successMessages.Add(1)
 		}
@@ -73,12 +72,15 @@ func runClient(ctx context.Context, id int, wg *sync.WaitGroup) {
 				return
 			}
 		case <-ticker.C:
-			msg := FlipMessage{Flip: rand.Intn(1024 * 1024)}
+			msg := FlipMessage{Flip: rand.Intn(100 * 1)}
 			jsonMsg, err := json.Marshal(msg)
 			if err != nil {
 				log.Printf("Client %d JSON marshal error: %v", id, err)
 				continue
 			}
+
+			log.Printf("Client %d sent message: %v", id, msg)
+
 			err = c.WriteMessage(websocket.TextMessage, jsonMsg)
 			if err != nil {
 				log.Printf("Client %d write error: %v", id, err)
@@ -87,6 +89,21 @@ func runClient(ctx context.Context, id int, wg *sync.WaitGroup) {
 			totalMessages.Add(1)
 		}
 	}
+}
+
+func connectWS(u url.URL, id int) (*websocket.Conn, bool) {
+	for retries := 1; retries <= 5; retries++ {
+		c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+		if err != nil {
+			// sleep for a while
+			sleepDuration := time.Duration(float64(retries)+rand.Float64()) * time.Second
+			time.Sleep(sleepDuration)
+		} else {
+			return c, false
+		}
+	}
+	log.Printf("Client %d fails to connect after 5 retries", id)
+	return nil, true
 }
 
 func main() {
@@ -109,6 +126,7 @@ func main() {
 	totalMsgs := totalMessages.Load()
 	successMsgs := successMessages.Load()
 	log.Printf("Total messages sent: %d", totalMsgs)
+	log.Printf("Messages sent per second: %.2f", float64(totalMsgs)/testDuration.Seconds())
 	log.Printf("Successful messages received: %d", successMsgs)
-	log.Printf("Actual messages per second: %.2f", float64(totalMsgs)/testDuration.Seconds())
+	log.Printf("Messages received per second: %.2f", float64(successMsgs)/testDuration.Seconds())
 }

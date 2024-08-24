@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"math/bits"
+	"math/rand"
 	"net/http"
 	"sync"
 	"time"
@@ -13,9 +14,10 @@ import (
 )
 
 const (
-	bitfieldSize      = 1024 * 1024
-	updateInterval    = time.Second
-	fullStateInterval = 30 * time.Second
+	bitfieldSize          = 1024 * 1024
+	updateInterval        = time.Second
+	fullStateInterval     = 30 * time.Second
+	minTimeBetweenChanges = 300 * time.Millisecond
 )
 
 var (
@@ -26,6 +28,7 @@ var (
 	bitfield     = make([]byte, bitfieldSize/8)
 	prevBitfield = make([]byte, bitfieldSize/8)
 	clients      = make(map[*websocket.Conn]time.Time)
+	scores       = make(map[*websocket.Conn]int64)
 	mutex        = &sync.Mutex{}
 	broadcast    = make(chan []byte)
 )
@@ -41,6 +44,10 @@ type BitfieldUpdate struct {
 
 type FullState struct {
 	State string `json:"state"`
+}
+
+type ScoreUpdate struct {
+	Score int64 `json:score`
 }
 
 func countOnes(bitfield []byte) int {
@@ -88,13 +95,23 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		if index >= 0 && index < bitfieldSize {
 			mutex.Lock()
 			lastUpdate, ok := clients[conn]
-			if ok && time.Since(lastUpdate) >= time.Second {
+
+			if ok && time.Since(lastUpdate) >= minTimeBetweenChanges {
+				// set new bit in bitfield, update score
 				byteIndex := index / 8
 				bitOffset := index % 8
 				bitfield[byteIndex] ^= 1 << bitOffset
+				newState := int64(((bitfield[byteIndex]) & (1 << bitOffset)) >> bitOffset)
+				scores[conn] = (scores[conn] + newState) * newState // +1 if new state is 'checked', go to 0 if new state is 'unchecked'
 				clients[conn] = time.Now()
+				mutex.Unlock()
+			} else {
+				// immediately unluck and apply sleep penalty
+				mutex.Unlock()
+				sleepDuration := time.Duration(500.+1000.*rand.Float64()) * time.Millisecond
+				//log.Printf("penalty: %.2f", float64(sleepDuration))
+				time.Sleep(sleepDuration)
 			}
-			mutex.Unlock()
 		}
 	}
 }
@@ -127,7 +144,7 @@ func handleUpdates() {
 			if len(update.Zero) > 0 || len(update.One) > 0 {
 				jsonUpdate, _ := json.Marshal(update)
 				broadcast <- jsonUpdate
-				log.Printf("Sent state diffs: %d changed bits", len(update.Zero)+len(update.One))
+				log.Printf("Sent state diffs to %d clients: %d changed bits", len(clients), len(update.Zero)+len(update.One))
 			}
 
 		case <-fullStateTicker.C:
@@ -138,7 +155,7 @@ func handleUpdates() {
 			mutex.Unlock()
 			jsonFullState, _ := json.Marshal(fullState)
 			broadcast <- jsonFullState
-			log.Printf("Sent full state: %d hot bits out of %d", countOnes(bitfield), bitfieldSize)
+			log.Printf("Sent full state to %d clients: %d hot bits out of %d", len(clients), countOnes(bitfield), bitfieldSize)
 		}
 	}
 }
@@ -148,14 +165,32 @@ func handleBroadcast() {
 		msg := <-broadcast
 		mutex.Lock()
 		for client := range clients {
-			err := client.WriteMessage(websocket.TextMessage, msg)
-			if err != nil {
-				//log.Printf("error: %v", err)
-				client.Close()
-				delete(clients, client)
-			}
+			sendIncomingMessage(client, msg)
+			sendScoreMessage(client)
 		}
 		mutex.Unlock()
+	}
+}
+
+func sendScoreMessage(client *websocket.Conn) {
+	scoreMsg := ScoreUpdate{
+		Score: scores[client],
+	}
+	jsonScoreMsg, _ := json.Marshal(scoreMsg)
+	err := client.WriteMessage(websocket.TextMessage, jsonScoreMsg)
+	if err != nil {
+		//log.Printf("error: %v", err)
+		client.Close()
+		delete(clients, client)
+	}
+}
+
+func sendIncomingMessage(client *websocket.Conn, msg []byte) {
+	err := client.WriteMessage(websocket.TextMessage, msg)
+	if err != nil {
+		//log.Printf("error: %v", err)
+		client.Close()
+		delete(clients, client)
 	}
 }
 
