@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"log"
+	"math/bits"
 	"net/http"
 	"sync"
 	"time"
@@ -43,10 +43,19 @@ type FullState struct {
 	State string `json:"state"`
 }
 
+func countOnes(bitfield []byte) int {
+	count := 0
+	for _, b := range bitfield {
+		count += bits.OnesCount8(b)
+	}
+	return count
+}
+
 func handleConnections(w http.ResponseWriter, r *http.Request) {
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println(err)
+		//log.Println(err)
 		return
 	}
 
@@ -118,6 +127,7 @@ func handleUpdates() {
 			if len(update.Zero) > 0 || len(update.One) > 0 {
 				jsonUpdate, _ := json.Marshal(update)
 				broadcast <- jsonUpdate
+				log.Printf("Sent state diffs: %d changed bits", len(update.Zero)+len(update.One))
 			}
 
 		case <-fullStateTicker.C:
@@ -128,6 +138,7 @@ func handleUpdates() {
 			mutex.Unlock()
 			jsonFullState, _ := json.Marshal(fullState)
 			broadcast <- jsonFullState
+			log.Printf("Sent full state: %d hot bits out of %d", countOnes(bitfield), bitfieldSize)
 		}
 	}
 }
@@ -139,7 +150,7 @@ func handleBroadcast() {
 		for client := range clients {
 			err := client.WriteMessage(websocket.TextMessage, msg)
 			if err != nil {
-				log.Printf("error: %v", err)
+				//log.Printf("error: %v", err)
 				client.Close()
 				delete(clients, client)
 			}
@@ -148,13 +159,45 @@ func handleBroadcast() {
 	}
 }
 
-func main() {
-	fmt.Println("Starting...")
+func getState(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-	http.HandleFunc("/ws", handleConnections)
+	mutex.Lock()
+	fullState := FullState{
+		State: base64.StdEncoding.EncodeToString(bitfield),
+	}
+	mutex.Unlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(fullState)
+}
+
+// withCORS adds CORS headers to responses
+func withCORS(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		if r.Method == http.MethodOptions {
+			return
+		}
+		next.ServeHTTP(w, r)
+	}
+}
+
+func main() {
+	log.Println("Starting...")
+
+	http.Handle("/", http.FileServer(http.Dir("./templates")))
+	http.HandleFunc("/ws", withCORS(handleConnections))
+	http.HandleFunc("/state", withCORS(getState))
+
 	go handleUpdates()
 	go handleBroadcast()
 
-	fmt.Println("Server listening for connections.")
+	log.Println("Server listening for connections.")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

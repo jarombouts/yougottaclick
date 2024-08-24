@@ -44,13 +44,13 @@ func runClient(ctx context.Context, id int, wg *sync.WaitGroup) {
 		for {
 			_, message, err := c.ReadMessage()
 			if err != nil {
-				log.Printf("Client %d read error: %v", id, err)
+				//log.Printf("Client %d read error: %v", id, err)
 				return
 			}
 			if len(message) < 100 {
-				log.Printf("Client %d received: %s", id, message)
+				//log.Printf("Client %d received: %s", id, message)
 			} else {
-				log.Printf("Client %d received big message of length %d", id, len(message))
+				//log.Printf("Client %d received big message of length %d", id, len(message))
 			}
 			successMessages.Add(1)
 		}
@@ -73,7 +73,7 @@ func runClient(ctx context.Context, id int, wg *sync.WaitGroup) {
 				return
 			}
 		case <-ticker.C:
-			msg := FlipMessage{Flip: rand.Intn(1024)} //* 1024)}
+			msg := FlipMessage{Flip: rand.Intn(1024 * 1024)}
 			jsonMsg, err := json.Marshal(msg)
 			if err != nil {
 				log.Printf("Client %d JSON marshal error: %v", id, err)

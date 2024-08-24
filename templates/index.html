@@ -1,44 +1,35 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:hx-on="http://www.w3.org/1999/xhtml">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Infinite Scroll Grid</title>
     <style>
-        @media (min-width: 1001px) {
-            .grid {
-                grid-template-columns: repeat(16, 50px);
-            }
-        }
-
-        @media (max-width: 1000px) and (min-width: 501px) {
-            .grid {
-                grid-template-columns: repeat(8, 50px);
-            }
-        }
-
-        @media (max-width: 500px) {
-            .grid {
-                grid-template-columns: repeat(4, 50px);
-            }
-        }
-
         body {
             display: flex;
             flex-direction: column;
             align-items: center;
             font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        #yuge-grid-container {
+            height: 100vh;
+            overflow-y: scroll;
+            width: 100%;
         }
 
         .grid {
             display: grid;
+            grid-template-columns: repeat(32, 25px);
             gap: 5px;
             margin: 5px;
         }
 
         .box {
-            width: 50px;
-            height: 50px;
+            width: 25px;
+            height: 25px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -47,52 +38,191 @@
             cursor: pointer;
         }
 
-        .message {
-            font-size: 24px;
-            color: #337599;
-            font-weight: bold;
-            margin: 10px;
+        .box.checked {
+            background-color: #337599;
         }
     </style>
-    <script src="https://unpkg.com/htmx.org@2.0.1"></script>
 </head>
 <body>
-<div id="grid-container">
+<div id="yuge-grid-container">
     <div id="topspacer"></div>
-    <div id="0"
-         class="grid"
-         hx-get="/scroll?batch=0"
-         hx-trigger="load delay:50ms"
-         hx-swap="outerHTML"></div>
+    <div id="grid-content"></div>
     <div id="bottomspacer"></div>
 </div>
-</body>
 
 <script>
-    let lastElement;
+    const TOTAL_BOXES = 1024 * 1024;
+    const BOXES_PER_ROW = 32;
+    const ROWS_PER_DIV = 32;
+    const BOXES_PER_DIV = BOXES_PER_ROW * ROWS_PER_DIV;
+    const TOTAL_DIVS = Math.ceil(TOTAL_BOXES / BOXES_PER_DIV);
 
-    function captureScrollPosition(evt) {
-        // console.log("!   hx-on:htmx:before-request='captureScrollPosition()' fired");
-        if (evt.detail.elt.getAttribute('hx-swap') === 'beforebegin') {
-            // console.log("    captureScrollPosition: hx-swap is beforebegin; setting lastElement");
-            lastElement = evt.target;
-            // console.log("---> lastElement value:", lastElement);
+    let state = new Uint8Array(TOTAL_BOXES / 8);
+    let loadedDivs = new Set();
+    let ws;
+
+    function initializeGrid() {
+        const gridContent = document.getElementById('grid-content');
+        for (let i = 0; i < TOTAL_DIVS; i++) {
+            const div = document.createElement('div');
+            div.id = `ids${i * BOXES_PER_DIV}-${(i + 1) * BOXES_PER_DIV - 1}`;
+            div.className = 'grid';
+            gridContent.appendChild(div);
+        }
+        updateSpacers();
+    }
+
+    function updateSpacers() {
+        const containerHeight = document.getElementById('yuge-grid-container').offsetHeight;
+        const gridHeight = TOTAL_DIVS * (ROWS_PER_DIV * 30); // 30px per row (25px height + 5px gap)
+        const spacerHeight = (gridHeight - containerHeight) / 2;
+        document.getElementById('grid-content').style.height = `${spacerHeight}px`;
+        // document.getElementById('bottomspacer').style.height = `${spacerHeight}px`;
+    }
+
+    function loadDiv(divIndex) {
+        if (loadedDivs.has(divIndex)) return;
+
+        const div = document.getElementById(`ids${divIndex * BOXES_PER_DIV}-${(divIndex + 1) * BOXES_PER_DIV - 1}`);
+        div.innerHTML = '';
+        for (let i = 0; i < BOXES_PER_DIV; i++) {
+            const boxIndex = divIndex * BOXES_PER_DIV + i;
+            if (boxIndex >= TOTAL_BOXES) break;
+            const box = document.createElement('div');
+            box.className = 'box';
+            box.dataset.index = boxIndex;
+            box.textContent = boxIndex;
+            if (isBoxChecked(boxIndex)) box.classList.add('checked');
+            box.addEventListener('click', () => toggleBox(boxIndex));
+            div.appendChild(box);
+        }
+        loadedDivs.add(divIndex);
+    }
+
+    function unloadDiv(divIndex) {
+        if (!loadedDivs.has(divIndex)) return;
+        const div = document.getElementById(`ids${divIndex * BOXES_PER_DIV}-${(divIndex + 1) * BOXES_PER_DIV - 1}`);
+        div.innerHTML = '';
+        loadedDivs.delete(divIndex);
+    }
+
+    function isBoxChecked(index) {
+        const byteIndex = Math.floor(index / 8);
+        const bitOffset = index % 8;
+        return (state[byteIndex] & (1 << bitOffset)) !== 0;
+    }
+
+    function toggleBox(index) {
+        const byteIndex = Math.floor(index / 8);
+        const bitOffset = index % 8;
+        state[byteIndex] ^= (1 << bitOffset);
+        updateBoxView(index);
+        sendToggleMessage(index);
+    }
+
+    function updateBoxView(index) {
+        const box = document.querySelector(`.box[data-index="${index}"]`);
+        if (box) {
+            box.classList.toggle('checked', isBoxChecked(index));
         }
     }
 
-    document.body.addEventListener('htmx:afterSwap', function (evt) {
-        // console.log("*   eventlistener on afterSwap triggers");
-        // console.log("    evt.detail.target.getAttribute('hx-swap') value: ");
-        // console.log(evt.detail.target.getAttribute('hx-swap'));
-
-        if (evt.detail.target.getAttribute('hx-swap') === 'beforebegin') {
-            console.log("    eventlistener on afterSwap: hx-swap is beforebegin && lastElement; scrolling to lastElement");
-            console.log("---> lastElement value: ", lastElement);
-            // lastElement.scrollIntoView({ behavior: "smooth", block: "end"});
-            // console.log("     finished scrolling lastElement into view.");
-            console.log("*** turned off, debug *** ");
+    function sendToggleMessage(index) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ flip: index }));
         }
-    });
-</script>
+    }
 
+    function handleScroll() {
+        const container = document.getElementById('yuge-grid-container');
+        const scrollTop = container.scrollTop;
+        const viewportHeight = container.offsetHeight;
+        const totalHeight = container.scrollHeight;
+
+        const firstVisibleDiv = Math.floor(scrollTop / (ROWS_PER_DIV * 30));
+        const lastVisibleDiv = Math.ceil((scrollTop + viewportHeight) / (ROWS_PER_DIV * 30));
+
+        for (let i = firstVisibleDiv - 1; i <= lastVisibleDiv + 1; i++) {
+            if (i >= 0 && i < TOTAL_DIVS) {
+                loadDiv(i);
+            }
+        }
+
+        for (const loadedDiv of loadedDivs) {
+            if (loadedDiv < firstVisibleDiv - 1 || loadedDiv > lastVisibleDiv + 1) {
+                unloadDiv(loadedDiv);
+            }
+        }
+    }
+
+    function connectWebSocket() {
+        ws = new WebSocket('ws://localhost:8080/ws');
+        ws.onopen = () => {
+            console.log('WebSocket connected');
+            fetchInitialState();
+        };
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.state) {
+                updateFullState(data.state);
+            } else {
+                updatePartialState(data);
+            }
+        };
+        ws.onclose = () => {
+            console.log('WebSocket disconnected');
+            setTimeout(connectWebSocket, 5000);
+        };
+    }
+
+    function fetchInitialState() {
+        fetch('http://localhost:8080/state')
+            .then(response => response.json())
+            .then(data => updateFullState(data.state));
+    }
+
+    function updateFullState(base64State) {
+        const binaryString = atob(base64State);
+        state = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            state[i] = binaryString.charCodeAt(i);
+        }
+        updateVisibleBoxes();
+    }
+
+    function updatePartialState(update) {
+        for (const index of update[0]) {
+            const byteIndex = Math.floor(index / 8);
+            const bitOffset = index % 8;
+            state[byteIndex] &= ~(1 << bitOffset);
+            updateBoxView(index);
+        }
+        for (const index of update[1]) {
+            const byteIndex = Math.floor(index / 8);
+            const bitOffset = index % 8;
+            state[byteIndex] |= (1 << bitOffset);
+            updateBoxView(index);
+        }
+    }
+
+    function updateVisibleBoxes() {
+        for (const divIndex of loadedDivs) {
+            const startIndex = divIndex * BOXES_PER_DIV;
+            const endIndex = Math.min((divIndex + 1) * BOXES_PER_DIV, TOTAL_BOXES);
+            for (let i = startIndex; i < endIndex; i++) {
+                updateBoxView(i);
+            }
+        }
+    }
+
+    window.addEventListener('load', () => {
+        initializeGrid();
+        handleScroll();
+        connectWebSocket();
+    });
+
+    document.getElementById('yuge-grid-container').addEventListener('scroll', handleScroll);
+    window.addEventListener('resize', updateSpacers);
+</script>
+</body>
 </html>
