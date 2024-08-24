@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkbox Grid</title>
+    <style>
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(32, 50px);
+            gap: 1px;
+            margin: 20px;
+        }
+        .checkbox {
+            width: 50px;
+            height: 50px;
+            background-color: #eee;
+            border: 1px solid #ddd;
+            cursor: pointer;
+        }
+        .checkbox.checked {
+            background-color: #4caf50;
+        }
+    </style>
+</head>
+<body>
+<div id="grid" class="grid"></div>
+
+<script>
+    const gridSize = 1024;
+    const wsUrl = "ws://localhost:8080/ws";
+    let ws;
+    let currentTick = 0;
+
+    async function fetchInitialState() {
+        console.log('Fetching initial state...');
+        const response = await fetch('http://localhost:8080/state');
+        const data = await response.json();
+        const state = new Uint8Array(data.state);
+        currentTick = data.tick;
+
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+        for (let i = 0; i < gridSize; i++) {
+            const checkbox = document.createElement('div');
+            checkbox.className = 'checkbox';
+            checkbox.dataset.index = i;
+            if (state[i] === 1) {
+                checkbox.classList.add('checked');
+            }
+            checkbox.addEventListener('click', () => {
+                const newState = checkbox.classList.contains('checked') ? 0 : 1;
+                ws.send(JSON.stringify({ index: i, value: newState }));
+            });
+            grid.appendChild(checkbox);
+        }
+        console.log('Initial state fetched');
+    }
+
+    function connectWebSocket() {
+        ws = new WebSocket(`${wsUrl}?tick=${currentTick}`);
+
+        ws.onmessage = (event) => {
+            const diff = JSON.parse(event.data);
+            const checkbox = document.querySelector(`.checkbox[data-index="${diff.index}"]`);
+            if (checkbox) {
+                if (diff.value === 1) {
+                    checkbox.classList.add('checked');
+                } else {
+                    checkbox.classList.remove('checked');
+                }
+            }
+        };
+
+        ws.onopen = () => {
+            console.log('WebSocket connection established');
+        };
+
+        ws.onclose = () => {
+            console.log('WebSocket connection closed');
+        };
+    }
+
+    console.log('DOMContentLoaded event listener added');
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchInitialState().then(connectWebSocket);
+    });
+</script>
+</body>
+</html>

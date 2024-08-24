@@ -22,6 +22,5 @@ def scroll():
         return render_template('scroll.html', batch=batch)
 
 
-
 if __name__ == '__main__':
     app.run(debug=True)
