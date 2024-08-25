@@ -17,7 +17,7 @@ const (
 	bitfieldSize          = 1024 * 1024
 	updateInterval        = time.Second
 	fullStateInterval     = 30 * time.Second
-	minTimeBetweenChanges = 300 * time.Millisecond
+	minTimeBetweenChanges = 100 * time.Millisecond
 )
 
 var (
@@ -32,23 +32,6 @@ var (
 	mutex        = &sync.Mutex{}
 	broadcast    = make(chan []byte)
 )
-
-type FlipMessage struct {
-	Flip int `json:"flip"`
-}
-
-type BitfieldUpdate struct {
-	Zero []int `json:"0,omitempty"`
-	One  []int `json:"1,omitempty"`
-}
-
-type FullState struct {
-	State string `json:"state"`
-}
-
-type ScoreUpdate struct {
-	Score int64 `json:score`
-}
 
 func countOnes(bitfield []byte) int {
 	count := 0
@@ -105,11 +88,15 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 				scores[conn] = (scores[conn] + newState) * newState // +1 if new state is 'checked', go to 0 if new state is 'unchecked'
 				clients[conn] = time.Now()
 				mutex.Unlock()
+
+				log.Printf("checked %d -> %d", index, newState)
 			} else {
 				// immediately unluck and apply sleep penalty
 				mutex.Unlock()
 				sleepDuration := time.Duration(500.+1000.*rand.Float64()) * time.Millisecond
-				//log.Printf("penalty: %.2f", float64(sleepDuration))
+
+				log.Printf("penalty: %.2f", float64(sleepDuration))
+
 				time.Sleep(sleepDuration)
 			}
 		}
@@ -208,6 +195,8 @@ func getState(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(fullState)
+
+	log.Println("GET /state")
 }
 
 // withCORS adds CORS headers to responses

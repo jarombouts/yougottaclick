@@ -23,10 +23,6 @@ var (
 	successMessages = atomic.Int64{}
 )
 
-type FlipMessage struct {
-	Flip int `json:"flip"`
-}
-
 func runClient(ctx context.Context, id int, wg *sync.WaitGroup) {
 	defer wg.Done()
 
@@ -106,7 +102,7 @@ func connectWS(u url.URL, id int) (*websocket.Conn, bool) {
 	return nil, true
 }
 
-func main() {
+func test() {
 	flag.Parse()
 	log.SetFlags(0)
 

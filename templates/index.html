@@ -77,7 +77,6 @@
         const gridHeight = TOTAL_DIVS * (ROWS_PER_DIV * 30); // 30px per row (25px height + 5px gap)
         const spacerHeight = (gridHeight - containerHeight) / 2;
         document.getElementById('grid-content').style.height = `${spacerHeight}px`;
-        // document.getElementById('bottomspacer').style.height = `${spacerHeight}px`;
     }
 
     function loadDiv(divIndex) {
@@ -91,7 +90,7 @@
             const box = document.createElement('div');
             box.className = 'box';
             box.dataset.index = boxIndex;
-            box.textContent = boxIndex;
+            //box.textContent = boxIndex;
             if (isBoxChecked(boxIndex)) box.classList.add('checked');
             box.addEventListener('click', () => toggleBox(boxIndex));
             div.appendChild(box);
@@ -116,13 +115,21 @@
         const byteIndex = Math.floor(index / 8);
         const bitOffset = index % 8;
         state[byteIndex] ^= (1 << bitOffset);
-        updateBoxView(index);
+        //updateBoxView(index); // no don't, let updates on ws handle that
+        markBoxView(index);
         sendToggleMessage(index);
     }
 
+    function markBoxView(index) {
+        const box = document.querySelector(`.box[data-index="${index}"]`);
+        if (box) {
+            box.style.backgroundColor = 'rgba(0, 128, 0, 0.3)';
+        }
+    }
     function updateBoxView(index) {
         const box = document.querySelector(`.box[data-index="${index}"]`);
         if (box) {
+            box.style.backgroundColor = '';
             box.classList.toggle('checked', isBoxChecked(index));
         }
     }
@@ -156,7 +163,7 @@
     }
 
     function connectWebSocket() {
-        ws = new WebSocket('ws://localhost:8080/ws');
+        ws = new WebSocket('/ws');
         ws.onopen = () => {
             console.log('WebSocket connected');
             fetchInitialState();
@@ -176,7 +183,7 @@
     }
 
     function fetchInitialState() {
-        fetch('http://localhost:8080/state')
+        fetch('/state')
             .then(response => response.json())
             .then(data => updateFullState(data.state));
     }
@@ -191,17 +198,28 @@
     }
 
     function updatePartialState(update) {
-        for (const index of update[0]) {
-            const byteIndex = Math.floor(index / 8);
-            const bitOffset = index % 8;
-            state[byteIndex] &= ~(1 << bitOffset);
-            updateBoxView(index);
+        console.log(update)
+        if (update[0]) {
+            console.log(update)
+            for (const index of update[0]) {
+                const byteIndex = Math.floor(index / 8);
+                const bitOffset = index % 8;
+                state[byteIndex] &= ~(1 << bitOffset);
+                updateBoxView(index);
+            }
         }
-        for (const index of update[1]) {
-            const byteIndex = Math.floor(index / 8);
-            const bitOffset = index % 8;
-            state[byteIndex] |= (1 << bitOffset);
-            updateBoxView(index);
+        if (update[1]) {
+            console.log(update)
+            for (const index of update[1]) {
+                const byteIndex = Math.floor(index / 8);
+                const bitOffset = index % 8;
+                state[byteIndex] |= (1 << bitOffset);
+                updateBoxView(index);
+            }
+        }
+        if (update['score']) {
+            // do something here
+            console.log(update)
         }
     }
 
