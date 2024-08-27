@@ -2,10 +2,8 @@ package main
 
 import (
 	"encoding/base64"
-	"encoding/binary"
 	"encoding/json"
 	"log"
-	"math/bits"
 	"math/rand"
 	"net/http"
 	"os"
@@ -39,80 +37,10 @@ var (
 	broadcast    = make(chan []byte)
 )
 
-func countOnes(bitfield []byte) int64 {
-	count := 0
-	for _, b := range bitfield {
-		count += bits.OnesCount8(b)
-	}
-	return int64(count)
-}
-
-func saveBitfield() error {
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	file, err := os.Create("bitfield.dat")
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	_, err = file.Write(bitfield)
-	if err != nil {
-		return err
-	}
-
-	buffer := make([]byte, binary.MaxVarintLen64)
-	nWritten := binary.PutVarint(buffer, clicks)
-	_, err = file.Write(buffer[:nWritten])
-	if err != nil {
-		return err
-	}
-
-	log.Printf("bitfield saved successfully; %d cumulative clicks", clicks)
-
-	return nil
-}
-
-func loadBitfield() error {
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	file, err := os.Open("bitfield.dat")
-	if err != nil {
-		if os.IsNotExist(err) {
-			// File doesn't exist, no need to load anything
-			return nil
-		}
-		return err
-	}
-	defer file.Close()
-
-	_, err = file.Read(bitfield)
-	if err != nil {
-		return err
-	}
-	log.Println("... read bitfield")
-
-	buffer := make([]byte, binary.MaxVarintLen64)
-	_, err = file.Read(buffer)
-	if err != nil {
-		return err
-	}
-	log.Println("... read clicks")
-	clicks, _ = binary.Varint(buffer)
-
-	hot = countOnes(bitfield)
-
-	log.Printf("Finished loading existing bitfield; %d cumulative clicks", clicks)
-	return nil
-}
-
 func handleConnections(w http.ResponseWriter, r *http.Request) {
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		//log.Println(err)
 		return
 	}
 
@@ -233,29 +161,6 @@ func handleBroadcast() {
 	}
 }
 
-func sendScoreMessage(client *websocket.Conn) {
-	scoreMsg := ScoreUpdate{
-		Score:  scores[client],
-		Hot:    hot,
-		Clicks: clicks,
-	}
-	jsonScoreMsg, _ := json.Marshal(scoreMsg)
-	err := client.WriteMessage(websocket.TextMessage, jsonScoreMsg)
-	if err != nil {
-		client.Close()
-		delete(clients, client)
-	}
-}
-
-func sendIncomingMessage(client *websocket.Conn, msg []byte) {
-	err := client.WriteMessage(websocket.TextMessage, msg)
-	if err != nil {
-		//log.Printf("error: %v", err)
-		client.Close()
-		delete(clients, client)
-	}
-}
-
 func getState(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -272,19 +177,6 @@ func getState(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(fullState)
 }
 
-// withCORS adds CORS headers to responses
-//func withCORS(next http.HandlerFunc) http.HandlerFunc {
-//	return func(w http.ResponseWriter, r *http.Request) {
-//		w.Header().Set("Access-Control-Allow-Origin", "*")
-//		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-//		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-//		if r.Method == http.MethodOptions {
-//			return
-//		}
-//		next.ServeHTTP(w, r)
-//	}
-//}
-
 func main() {
 	log.Println("Starting...")
 	err := loadBitfield()
@@ -293,8 +185,8 @@ func main() {
 	}
 
 	http.Handle("/", http.FileServer(http.Dir("./static")))
-	http.HandleFunc("/ws", handleConnections) //withCORS(handleConnections))
-	http.HandleFunc("/state", getState)       //withCORS(getState))
+	http.HandleFunc("/ws", handleConnections)
+	http.HandleFunc("/state", getState)
 
 	go handleUpdates()
 	go handleBroadcast()

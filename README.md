@@ -10,7 +10,8 @@ Also, I've wanted to learn Go for a while now, and this seemed like the perfect 
 
 ## GETTING STARTED
 
-Everything is in a single go binary. Just do `go run .` (or `go build` if you want a binary) to start the server, which listens on port 8008.
+This repo takes an extremely... ozempic approach to architecture. Everything is contained in a single go binary. Just do `go run .` (or `go build` if you want a binary) to start the server, which listens on port 8008.
+
 
 ## WHAT'S HAPPENING
 
@@ -30,3 +31,4 @@ There's some heavy mutex-ing and goroutine-ing going on in the code... and it's 
 But coming from Python at my day job, it's just wonderful how you get crazy performance and seamless concurrency with zero headaches 
 (LOOKING AT YOU PYTHON `multiprocessing` OR `asyncio`)
 
+Every 60 seconds, the current bitfield and the cumulative number of clicks are written to disk, so the state persists (somewhat; minus all the edits since saving of course) between restarts.
