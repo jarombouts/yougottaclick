@@ -10,7 +10,7 @@ Also, I've wanted to learn Go for a while now, and this seemed like the perfect 
 
 ## GETTING STARTED
 
-This repo takes an extremely... ozempic approach to architecture. Everything is contained in a single go binary. Just do `go run .` (or `go build` if you want a binary) to start the server, which listens on port 8008.
+This repo takes an extremely... *ozempic* approach to architecture. Everything is contained in a single go binary. Just do `go run .` (or `go build` if you want a binary) to start the server, which listens on port 8008.
 
 
 ## WHAT'S HAPPENING
