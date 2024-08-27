@@ -1,6 +1,6 @@
-module onemillionlootboxes
+module yougottaclick
 
-go 1.22.2
+go 1.23
 
 require (
 	github.com/gorilla/handlers v1.5.2

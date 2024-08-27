@@ -292,7 +292,7 @@ func main() {
 		log.Fatalf("error loading bitfield: %v", err)
 	}
 
-	http.Handle("/", http.FileServer(http.Dir("./templates")))
+	http.Handle("/", http.FileServer(http.Dir("./static")))
 	http.HandleFunc("/ws", handleConnections) //withCORS(handleConnections))
 	http.HandleFunc("/state", getState)       //withCORS(getState))
 
