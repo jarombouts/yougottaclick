@@ -14,5 +14,7 @@ type FullState struct {
 }
 
 type ScoreUpdate struct {
-	Score int64 `json:score`
+	Score  int64 `json:"score"`
+	Clicks int64 `json:"clicks"`
+	Hot    int64 `json:"hot"`
 }

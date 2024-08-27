@@ -23,6 +23,10 @@ var (
 	successMessages = atomic.Int64{}
 )
 
+//type FlipMessage struct {
+//	Flip int `json:"flip"`
+//}
+
 func runClient(ctx context.Context, id int, wg *sync.WaitGroup) {
 	defer wg.Done()
 
@@ -68,7 +72,7 @@ func runClient(ctx context.Context, id int, wg *sync.WaitGroup) {
 				return
 			}
 		case <-ticker.C:
-			msg := FlipMessage{Flip: rand.Intn(100 * 1)}
+			msg := FlipMessage{Flip: rand.Intn(1024 * 16)}
 			jsonMsg, err := json.Marshal(msg)
 			if err != nil {
 				log.Printf("Client %d JSON marshal error: %v", id, err)
@@ -102,27 +106,28 @@ func connectWS(u url.URL, id int) (*websocket.Conn, bool) {
 	return nil, true
 }
 
-func test() {
-	flag.Parse()
-	log.SetFlags(0)
-
-	ctx, cancel := context.WithTimeout(context.Background(), *testDuration)
-	defer cancel()
-
-	var wg sync.WaitGroup
-	for i := 0; i < *numConnections; i++ {
-		wg.Add(1)
-		go runClient(ctx, i, &wg)
-	}
-
-	<-ctx.Done()
-	log.Println("Test duration completed. Waiting for goroutines to finish...")
-	wg.Wait()
-
-	totalMsgs := totalMessages.Load()
-	successMsgs := successMessages.Load()
-	log.Printf("Total messages sent: %d", totalMsgs)
-	log.Printf("Messages sent per second: %.2f", float64(totalMsgs)/testDuration.Seconds())
-	log.Printf("Successful messages received: %d", successMsgs)
-	log.Printf("Messages received per second: %.2f", float64(successMsgs)/testDuration.Seconds())
-}
+//
+//func main() {
+//	flag.Parse()
+//	log.SetFlags(0)
+//
+//	ctx, cancel := context.WithTimeout(context.Background(), *testDuration)
+//	defer cancel()
+//
+//	var wg sync.WaitGroup
+//	for i := 0; i < *numConnections; i++ {
+//		wg.Add(1)
+//		go runClient(ctx, i, &wg)
+//	}
+//
+//	<-ctx.Done()
+//	log.Println("Test duration completed. Waiting for goroutines to finish...")
+//	wg.Wait()
+//
+//	totalMsgs := totalMessages.Load()
+//	successMsgs := successMessages.Load()
+//	log.Printf("Total messages sent: %d", totalMsgs)
+//	log.Printf("Messages sent per second: %.2f", float64(totalMsgs)/testDuration.Seconds())
+//	log.Printf("Successful messages received: %d", successMsgs)
+//	log.Printf("Messages received per second: %.2f", float64(successMsgs)/testDuration.Seconds())
+//}
