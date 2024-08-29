@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YOU GOTTA CLICK! THERE'S 1024x1024 SQUARES TO FLIP</title>
+    <title>YOU GOTTA CLICK! THERE'S 1024x1024 SQUARES TO FLIP!</title>
     <style>
         body {
             margin: 0;
@@ -42,8 +42,8 @@
 <div id="main" class="main-container">
     <div id="header"><span></span><span class="infoIcon">🤔</span> ➡️ GOTTA CLICK EM ALL ⬅️ <span class="infoIcon">🤔</span><span></span> </div>
     <canvas id="checkboxCanvas"></canvas>
-    <div id="infoModal" style="display: none; position: fixed; text-align: center; top: 50%; left: 30%; transform: translate(-20%, -50%); font-size: 16px; font-family: monospace; background-color: #eeddd6; color: #9b2226; padding: 20px; border-radius: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.5); z-index: 1000;">
-        <p>You gotta click them all! There's over one million boxes to click... Flipping a light square gives you one point, flipping a dark square resets your score. Poor execution by <a href="https://www.strangeloop.nl">strangeloop.nl</a>.</p>
+    <div id="infoModal" style="display: block; position: fixed; text-align: center; top: 50%; left: 30%; transform: translate(-20%, -50%); font-size: 16px; font-family: monospace; background-color: #eeddd6; color: #9b2226; padding: 20px; border-radius: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.5); z-index: 1000;">
+        <p>You gotta click them all! There's over one million boxes to click; scroll to explore the canvas. Flipping a light square gives you one point, flipping a dark square resets your score. </p>
         <p>The idea for this site was stolen from the excellent <a href="https://onemillioncheckboxes.com">eieio</a>. I got quite obsessed by his writeup on how he built One Million Checkboxes, and felt that I had to <a href="https://github.com/jarombouts/yougottaclick">build something like</a> this myself...</p>
 
         <button id="closeModal" style="margin-top: 10px; cursor: pointer; background-color: #9b2226; color: #eeddd6; font-family: monospace; font-size: 20px; padding: 8px 16px; border: none; border-radius: 5px;">OKAY LET'S GO</button>
