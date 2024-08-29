@@ -207,8 +207,10 @@
         }
         ctx.font = "18px monospace";
         ctx.fillStyle = `rgba(40, 54, 13, 1)`; //#bb3e03
-        ctx.fillText(`HOT: ${hot}   LIFETIME: ${clicks}`, canvas.width / 2, Math.min((canvas.height / 5) * 6, canvas.height - 75)); // canvas.height / 2); //
+        ctx.fillText(`HOT: ${hot}   LIFETIME: ${clicks}`, canvas.width / 2, canvas.height - 75); // canvas.height / 2); //
 
+        ctx.textAlign = "left";
+        ctx.fillText(`POSITION: (${scrollX}, ${scrollY})`,  canvas.width - 280, Math.min((canvas.height / 5), 25));
         console.log(score);
     }
 
@@ -256,7 +258,7 @@
     }
 
     function handleKeyNav(event) {
-        const scrollAmount = checkboxSize * 10; // keep this for arrow key navigation
+        const scrollAmount = checkboxSize * 10;
 
         switch (event.key) {
             case 'ArrowLeft':
@@ -272,19 +274,15 @@
                 scrollY = (scrollY + scrollAmount + gridSize * checkboxSize) % (gridSize * checkboxSize);
                 break;
             case '+':
-            case '=': // for when you press shift + '=' to get '+'
-                checkboxSize = Math.min(checkboxSize + 1, 100); // max size limit to prevent insanity
+            case '=':
+                checkboxSize = Math.min(checkboxSize + 1, 100);
                 break;
             case '-':
-                checkboxSize = Math.max(checkboxSize - 1, 5); // min size limit so you don’t zoom into oblivion
+                checkboxSize = Math.max(checkboxSize - 1, 5);
                 break;
             default:
-                return; // nothing happens for other keys
+                return;
         }
-
-        // recenter canvas to keep the focus on the same point after zoom
-        scrollX = (scrollX + gridSize * checkboxSize) % (gridSize * checkboxSize);
-        scrollY = (scrollY + gridSize * checkboxSize) % (gridSize * checkboxSize);
 
         draw(); // redraw with updated sizes or positions
     }
