@@ -55,7 +55,7 @@
     const canvas = document.getElementById('checkboxCanvas');
     const ctx = canvas.getContext('2d');
 
-    const checkboxSize = 20; // each checkbox is 20x20 pixels
+    let checkboxSize = 20; // each checkbox is 20x20 pixels
     const gridSize = 1024; // 1024x1024 checkboxes
     let bitArray = new Uint8Array(128 * 1024); // assuming 1024*1024 bits, / 8 = 128 KiB of binary data
     let scrollX = 0, scrollY = 0; // to track virtual scroll positions
@@ -255,6 +255,40 @@
         lastTouchY = null;
     }
 
+    function handleKeyNav(event) {
+        const scrollAmount = checkboxSize * 10; // keep this for arrow key navigation
+
+        switch (event.key) {
+            case 'ArrowLeft':
+                scrollX = (scrollX - scrollAmount + gridSize * checkboxSize) % (gridSize * checkboxSize);
+                break;
+            case 'ArrowRight':
+                scrollX = (scrollX + scrollAmount + gridSize * checkboxSize) % (gridSize * checkboxSize);
+                break;
+            case 'ArrowUp':
+                scrollY = (scrollY - scrollAmount + gridSize * checkboxSize) % (gridSize * checkboxSize);
+                break;
+            case 'ArrowDown':
+                scrollY = (scrollY + scrollAmount + gridSize * checkboxSize) % (gridSize * checkboxSize);
+                break;
+            case '+':
+            case '=': // for when you press shift + '=' to get '+'
+                checkboxSize = Math.min(checkboxSize + 1, 100); // max size limit to prevent insanity
+                break;
+            case '-':
+                checkboxSize = Math.max(checkboxSize - 1, 5); // min size limit so you don’t zoom into oblivion
+                break;
+            default:
+                return; // nothing happens for other keys
+        }
+
+        // recenter canvas to keep the focus on the same point after zoom
+        scrollX = (scrollX + gridSize * checkboxSize) % (gridSize * checkboxSize);
+        scrollY = (scrollY + gridSize * checkboxSize) % (gridSize * checkboxSize);
+
+        draw(); // redraw with updated sizes or positions
+    }
+
     function handleClick(event) {
         const canvasRect = canvas.getBoundingClientRect();
         const clickX = event.clientX - canvasRect.left + scrollX;
@@ -298,11 +332,10 @@
         draw(); // initial draw call to show the score
     }
 
-    // connectWebSocket();
-
     // Initial canvas setup
     window.addEventListener('resize', resizeCanvas);
     window.addEventListener('wheel', handleScroll);
+    window.addEventListener('keydown', handleKeyNav);
 
     // touch event listeners
     canvas.addEventListener('touchstart', handleTouchStart);
