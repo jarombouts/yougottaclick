@@ -1,6 +1,8 @@
 # YOU GOTTA CLICK
 
-Over one million boxes to flip! 
+Live at: https://yougotta.click
+
+Over one million squares to flip!  
 If you click a light square, it turns dark and you get one point. If you click a dark square, it goes light and your score resets.
 Because the playing field is the same for everyone, you'd better watch out for other players on the field!
 
