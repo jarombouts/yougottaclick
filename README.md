@@ -12,7 +12,7 @@ Also, I've wanted to learn Go for a while now, and this seemed like the perfect 
 
 ## GETTING STARTED
 
-This repo takes an extremely... *ozempic* approach to architecture. Everything is contained in a single go binary. Just do `go run .` (or `go build` if you want a binary) to start the server, which listens on port 8008.
+This repo takes an extremely... *ozempic* approach to architecture. Everything is contained in a single go binary. Just do `go run .` (or `go build` if you want a binary) to start the server, which listens on port 8008. When stress testing it, I got up to 10k simultaneous connections, both clicking twice a second, before things started to go weird. Not bad.
 
 
 ## WHAT'S HAPPENING
