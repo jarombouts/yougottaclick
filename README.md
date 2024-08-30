@@ -20,8 +20,8 @@ This repo takes an extremely... *ozempic* approach to architecture. Everything i
 The server exposes several things:
 
 - The frontend, a single file `./static/index.html`. It's terrible. I don't know any Golang, but my frontend skills are even worse. 
-  LLM-du-jour did most of the work, and came up with many terrible ideas until I told it to piss off with the endless <div> soup.
-  It's using a Canvas to draw all the squares, which is sort of messy but easy to understand. 
+  LLM-du-jour did most of the work, and came up with many terrible ideas until I told it to piss off with the endless div  soup.
+  So, now it's using a Canvas to draw all the squares, which is sort of messy but easy to understand. 
   Using it reminded me a bit of the Processing language for visual art, which is Very Fun.
 - The current global state of all 1024x1024 boxes at /state, as a base64 encoded wad of binary
 - A websocket connection that...  
